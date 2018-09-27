@@ -1,19 +1,4 @@
-##Stat 205
-##Assignment #1
-#Due: Sep 27th, 2018
-#Part one 
-##1)	A phone-in poll conducted by a newspaper reported that 73% of those who called in liked business tycoon Donald Trump. 
-#a)	What is the parameter of interest?
-#b)	What is the statistic?
-
-##2)	Provide two examples of nominal data and two examples of interval data.
-
-##3) Determine the type of data for each of the following examples. i.e. is     the data categorical  (nominal or ordinal) or  interval (continuous or discrete)
-#a)	Pulse rate per minute (beats/minute)
-#b)	The monthly closing stock price of Royal Bank.
-#c)	Your major at SFU.
-#d)	Musical tastes in music.
-
+##import libraries
 library('readxl')
 ##import dataset as Pulse_Data
 Pulse_Data <- read_excel("C:/Users/Owner/Desktop/Coursenotes/Fw__Stat_205_assignment_1/Pulse Data.xlsx")
@@ -67,3 +52,6 @@ pie(gendercounts, main = "Piechart of Gender", labels = c("F", "M"))
 #1) Calculate the mean, median and standard deviation of the pulse rates using the "pulse data" set on line.
 summary(Pulse_Data$Pulse)
 sd(Pulse_Data$Pulse)
+
+##Sort data
+data.frame(sort(Pulse_Data$Pulse))
