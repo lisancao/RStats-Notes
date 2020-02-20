@@ -8,6 +8,7 @@ Pulse_Data
 ##View Pulse_Data attributes
 colnames(Pulse_Data)
 row.names(Pulse_Data)
+dim(Pulse_Data)
 
 ##View dataframe 
 data.frame(Pulse_Data)
