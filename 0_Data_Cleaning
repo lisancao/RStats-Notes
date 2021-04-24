@@ -1,0 +1,215 @@
+# Notes from Hadley Wickam's R for Data Science - Chapters 4 & 5
+
+########################################## WORKFLOW BASICS 
+
+# Using R for mathmatical operations 
+(4 + 5 + 3) / 3
+sin(pi / 3)
+
+# Creating new objects 
+x <- 3 * 6
+x
+# you can use alt - or alt + to create assignment operators 
+# variable names can only start with a letter 
+x  <- 0 
+x_ <- 0 # _x would be invalid 
+x13 <- 0 # 13x would be invalid
+x.13 <- 0 # .x13 would be invalid 
+
+# generate sequences 
+y <- seq(from = 1, to = 10, length.out = 5)
+y
+
+# instead of typing the variable name to view the output, you ccan just surround the original assignment with () 
+(y <- seq(from = 1, to = 10, length.out = 5))
+
+########################################## DATA TRANSFORMATION
+# prepare some data sets 
+library(nycflights13)
+library(tidyverse)
+
+flights <- nycflights13::flights
+
+## types of variables, and their tibble abbreviations: 
+# int (integer), dbl (doubles/real numbers), chr (character vectors/strings), dttm (date/time), lgl (logical), fctr (factor/categorial variables), date (dates) 
+
+####################### DPLYR BASICS 
+filter() # pick observations by their values 
+arrange() # reorder the rows
+select() # pick variables by their names 
+mutate () # create new variables with functions of existing variables 
+summarise() # collapse many values down to a single summary
+group_by() # operate group-by-group instead of on entire dataset 
+
+#### filter methods 
+jan1 <- filter(flights, month == 1, day == 1) # exc;ludes all NA values if not explicitely asked for in a condition  
+
+
+# comparators
+# ==,  >, <, <=, >=, != 
+near() # more appropriate for comparing calculated, precise numbers) 
+# logical operators 
+# x & y (and) , x & !y (is not), xor(x, y), x | y, y & !x, x, y
+# %in% 
+filter(flights, month == (11 | 12)) # evals to TRUE which becomes 1, which returns january..
+filter(flights, month %in% c(11, 12)) # gives us what we want 
+
+
+# using Morgan's law to simplify subsetting 
+# !(x & y) is the same as !x | !y, and !(x | y) is the same as !x & !y 
+
+
+# find flights that were not delayed by more than two hours 
+filter(flights, !(arr_delay > 120 | dep_delay > 120))
+filter(flights, arr_delay <= 120, dep_delay <= 120)
+
+# for complex, multipart expressions in filter, it is recommended to make them explicit variables instead and then feed them into the funciton 
+
+## HANDLING MISSING VALUES 
+# NA represents a missing value, and any operation involving an unknown value will also be unknown 
+
+NA > 5 #returns NA 
+10 == NA #returns NA 
+NA + 10 #returns NA 
+NA / 2 #returns NA
+NA == NA #returns NA 
+is.na(NA)
+
+#### arrange() methods
+# arrange by column, each additional column is used to break ties in the vales of existing columns 
+
+# arrange flights by year, then month, then day 
+arrange(flights, year, month, day)
+
+# same thing but in desciending order 
+arrange(flights, desc(year), desc(month), desc(day))
+
+# NA values are shuffled toward the end of the dataframe 
+
+#### select() methods 
+# select variables of interest and narrow down a dataframe into a subset 
+
+# select dates from flight data 
+select(flights, year, month, day)
+
+# select all columns between two columns 
+select(flights, year:day)
+
+# select all columnda except those columns
+select(flights, -(year:day))
+
+
+# select subfunctions- use ?select for full list 
+starts_with() # match beginning of string
+ends_with() # matches end of string 
+contains() # matches string containing 
+matches() # can take regex expressions
+num_range(prefix = "x", range = 1:3) # matches numeric range, e.g. x1, x2, x3
+
+
+### renaming variables
+# using rename() to rename variables
+rename(flights, tail_num = tailnum)
+
+#select() will drop all variables not explicitely mentioned, so pair it with everything() if using this method 
+select(flights, time_hour, air_time, everything())
+
+### adding new variables with mutate() 
+mutate() # adds new columns at the end of your dataset 
+flights_sml <- select(flights, #dataset 
+                      year:day, #columns from year to day
+                      ends_with("delay"), 
+                      distance, 
+                      air_time)                      )
+
+mutate(flights_sml, # add new columns
+       gain = dep_delay - arr_delay,
+       speed = distance / air_time * 60)       )
+
+transmute(flights, #only keep the new variables 
+          gain = dep_delay - arr_delay, 
+          hours = air_time / 60, 
+          gain_per_hour = gain / hours)
+
+### There are a few useful functions that can be used to create new columns, however they must take a vector as an input and will return a vector with the same numer of values. 
+
+# arithmetic functions and arithmetic functions combined with aggregate functions 
+x / sum(x)
+y - mean(y)
+# modular arithmetic
+x %/% y # integer division
+x %% y # get remainder 
+x == y * (x %/% y) + (x %% y)
+
+# logs convert multiplicative relationships to additive, useful for modeling 
+log() 
+log2() #easiest to interpret 
+log10()  
+
+#offsets (think of shifting) 
+lead() # leading value
+lag() #lagging value 
+x <- 1:10
+lead(x)
+lag(x)
+
+#cumulative and rolling aggregates 
+cumsum() #cumulative sum 
+cumprod() # cumulative product 
+cummin() # cumulative minimum (repeats min val over vector) 
+cummax() # cumulative maximum 
+cummean() # cumulative mean 
+
+#ranking 
+min_rank() #ranking by minimim first 
+min_rank(desc(x)) # reverse ranking with maximum first 
+row_number() #row numer 
+dense_rank() # no gaps between ranks 
+percent_rank() # a number between 0 and 1 is computed by rescaling min_rank() 
+cume_dist() # cumulative distribution, proportion of all values less than or equal to the current rank 
+
+#### grouped summaries with summarise() 
+summarise(flights, delay = mean(dep_delay, na.rm = TRUE)) #returns single row 
+
+# user summarise with group_by() 
+by_day <- group_by(flights, year, month, day)
+summarise(by_day, delay = mean(dep_delay, na.rm = TRUE))
+
+# ---------  exploring the relationship between distance and average delay for each location
+by_dest <- group_by(flights, dest) # group flights by destination
+delay <- summarise(by_dest, # summarise 
+                   count = n(),
+                   dist = mean(distance, na.rm = TRUE), #compute average distance
+                   delay = mean(arr_delay, na.rm = TRUE) # compute average delay
+)
+#> `summarise()` ungrouping output (override with `.groups` argument)
+delay <- filter(delay, count > 20, dest != "HNL") #filter to remove honolulu airport, an outlier that is twice as far away as the next closest airport 
+
+# It looks like delays increase with distance up to ~750 miles 
+# and then decrease. Maybe as flights get longer there's more 
+# ability to make up delays in the air?
+ggplot(data = delay, mapping = aes(x = dist, y = delay)) +
+  geom_point(aes(size = count), alpha = 1/3) +
+  geom_smooth(se = FALSE)
+
+# using pipe to prepare the data instead 
+delays <- flights %>% 
+  group_by(dest) %>% 
+  summarise(
+    count = n(),
+    dist = mean(distance, na.rm = TRUE),
+    delay = mean(arr_delay, na.rm = TRUE)
+  ) %>% 
+  filter(count > 20, dest != "HNL")
+
+### removing missing values 
+flights %>% 
+  group_by(year, month, day) %>% 
+  summarise(mean = mean(dep_delay, na.rm = TRUE))
+
+
+#### getting counts 
+x <- 1:10
+
+count(n())
+count(sum(!is.na(flight))) 
