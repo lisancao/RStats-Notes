@@ -1,0 +1,123 @@
+# relational data 
+
+library(tidyverse)
+library(nycflights13)
+
+
+station <- read_csv("station.csv", col_types = cols(ID = col_integer()))
+stats <- read_csv("stats.csv", col_types = cols(ID = col_integer()))
+
+#-----------------------------------
+### exercise 1. What is the relationship between the weather and the airports table? 
+# they share origin, faa and origin. these keys have different names
+
+flights2 %>% 
+  left_join(airports, by = c("dest" = "faa"))
+
+# keys - variables used to connect tables. A primary key uniquely identifies an observation in its own table, while a foreign key will uniquely identify an observation in another table. a variable can be both depending on the context and the way in which the variable relates the primary dataset to other datasets 
+
+# a good way of figuring out whether a key does in fact uniquely identify each observation is by using count(), and if a value appears more than once. 
+flights %>% 
+  count(year, month, day, flight, tailnum) %>% 
+  filter(n > 1) %>% 
+  print(n = 3)
+
+#Not all tables have a explicit primary keys/unique observation identifiers. therefore what you can do instead is add a "surrogate key" by generating a new column containing the row number 
+
+flights %>% 
+  select(year, month, day, flight, tailnum) %>% 
+  mutate(key = row_number())
+
+
+################# joining tables
+
+# mutating joins - combine variables from two dataframes 
+inner_join() # keeps observations that appear in both tables
+
+left_join() # adds columns to first/"left" dataset (keeps first dataset observations)
+right_join() # keeps right dataset observations
+full_join() # keeps all observations that appear in first and second
+
+#------------------------
+# examples 
+stats %>% 
+  left_join(station)
+
+# repeat the left join while removing row 3 from station will give us a list of NAs in the columns that came from station
+station <- station[-3,]
+stats %>% 
+  left_join(station)
+
+# left joins with nycflights13
+flights2 <- flights %>% 
+  select(year:day, hour, origin, dest, tailnum, carrier)
+flights2
+
+flights2 %>% left_join(weather)
+
+flights2 %>% left_join(planes, by = "tailnum") #avoid confusion with years, which mean different things in each dataset, and use tailnum instead 
+#--------------------------
+### exercise #2: change the name of the ID column in stats to Station, with these modified tables, do a left-join of the stats and station tables 
+
+stats %>%
+  rename("Station" = ID) %>% 
+  left_join(station, by = c("Station" = "ID"))
+
+#--------------------------
+# filtering joins - keep cases from left dataframe, aka filtering dataframe 2 based on characteristics in dataframe 1. they are an extension to filter a table according to another table 
+semi_join() # like inner join but never duplicates rows of x
+anti_join()
+nest_join()
+
+
+# examples 
+top_dest <- 
+  flights2 %>% 
+  count(dest, sort = TRUE) %>% 
+  head(n = 10)
+print(top_dest, n = 4)
+
+
+# let's say we wanted to filter by top destination 
+flights2 %>% 
+  filter(dest %in% top_dest$dest) %>% # look for col dest in second df 
+  print(n = 4)
+
+# using semi-join instead 
+flights2 %>% 
+  semi_join(top_dest) %>% # can also match to multiple columns 
+  print(n = 4)
+
+
+#-------------------------
+### exercise 3: from the original flights table, create a table called top_dep_delay comprised of the year-month-days with the 3 largest total delays, where total delay is defined as the sum of the dep_delay variable for each year-month-day 
+
+top_dep_delay <- flights %>% # use flights data
+  group_by(year, month, day) %>% #group by time
+  summarise(., total_delay = sum(dep_delay, na.rm = TRUE)) %>% #calculate total delay 
+  arrange(desc(total_delay))
+
+top_dep_delay <- top_dep_delay[1:3,]
+
+# semi join to flights 
+flights %>% 
+  semi_join(filter(top_dep_delay, row_num[1:3,])
+
+#---------------------------
+
+# set operations 
+intersect() # keeps identical/common values 
+union() #appends rows 
+setdiff() #removes duplicates
+
+#examples 
+df1 <- tibble(x = c(1, 2), y = c(1, 1)) 
+df2 <- tibble(x = c(1, 1), y = c(1, 2))
+
+intersect(df1, df2) #returns 1, 1
+intersect(df2, df1) #same
+
+union(df1, df2)
+
+setdiff(df1, df2)
+setdiff(df2, df1)
