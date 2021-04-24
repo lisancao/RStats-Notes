@@ -1,0 +1,259 @@
+# chapter 10 - R4DS
+# Tibbles 
+
+library(tidyverse)
+
+data <- mtcars
+
+# data frames vs tibbles
+# create df
+data.frame()
+as.data.frame() #from existing
+
+#will print up to R's max.print
+
+#create tibble
+tibble()
+as_tibble() #from existing
+
+# will print only first 10 rows, and as many columns as as possible, and data types 
+# can also use options(tibble.width = Inf) or options(dplyer.print_min=Inf)
+
+
+# access columns (works for both tibbles and dataframes)
+data$col1 
+data[["row1"]]
+
+# subset columns
+select() #dplyr
+data[,"col1"] #all rows one column, when done with data frame will return vector, when done with tibble will return a tibble 
+data[, c("x", "y")] #all rows multiple columns, format differs between dataframe and tibble
+
+# subset rows 
+filter() #dplyr
+data[1, ] #get entire row 1
+data[1:2, ] #get first two rows 
+
+
+# exercises 
+
+#create a dataframe called myd and tibble myt that each have columns named cat, dog, and mouse, each should be of length three but any value is okay
+myd <- data_frame( "cat" = c(1, 2, 3), "dog" = c(1, 2, 3), "mouse" = c(1, 2, 3))
+myt <- tibble( "cat" = c(1, 2, 3), "dog" = c(1, 2, 3), "mouse" = c(1, 2, 3))
+
+#what does names() return?
+names(myd) #cat dog mouse - vector 
+names(myt)#cat dog mouse - vector
+
+a1 <- c("cat", "dog", "bird", "fish")
+a2 <- c("cat", "tiger")
+
+myd[, names(myt) %in% a1] #returns a tibble?? 
+myt[, names(myt) %in% a1]
+
+
+myd[, names(myt) %in% a2] #returns a tibble??
+myt[, names(myt) %in% a2] #returns a tibble??
+
+
+
+# importing data 
+read.csv() # returns data frame
+read_csv() #returns tibble, gives indo on how each column was parsed
+
+read_csv2() #semicolon-delim files 
+read_tsv() #read tab-delim tiles 
+read_delim() #read with user-specific delim 
+
+
+# chicken.C
+c = read_delim("Chicken.C", delim = "C")
+  
+
+# other methods for reading in data 
+data <- read_csv("lec05exfile.csv") 
+
+# skipping a file header 
+data <- read_csv("lec05exfile.csv", skip = 2, comment = "#")
+
+
+# parse with specific column specifications
+data <- read_csv("lec05exfile.csv", skip = 2, comment = "#", 
+                 col_names = TRUE,
+                 cols(
+                   A = col_double(),
+                   B = col_double(), 
+                   C = col_date(format = "")
+                 )
+)
+
+### parse functions
+parse_number() # parse vector for nunbers
+parse_logical()
+parse_integer()
+parse_double()
+parse_character()
+parse_factor()
+parse_datetime() # use parse_datetime(data, format = "%m/%d/%t/%H/%M/%S") to set format 
+# calculate diff useing diff() to work with d/t
+parse_date()
+parse_time()
+#nest with str to see the mode of an object 
+str(parse_number())
+
+
+# custom dataset import 
+yield_data <- read_csv("yield.corn", skip = 4, comment = "#", 
+                       col_names = TRUE,
+                       cols(
+                         fert = col_character(), 
+                         date = col_factor(), 
+                         yield = col_double()
+                       ))
+
+x <- yield_data$date
+c <- parse_datetime(as.character(x))
+
+
+#load libraries
+library(tidyverse)
+
+#import data 
+table1 <- read_csv("lec06table1.csv", 
+                   col_types = cols(
+                     country = col_character(), 
+                     year = col_integer(), 
+                     cases = col_integer(), 
+                     population = col_integer()
+                   ))
+
+#create tibbles used in examples: 
+table2 <- table1 %>% 
+  gather(cases, population, key = "type", value = "count") %>% 
+  arrange(country, year)
+
+table3 <- table1 %>% 
+  mutate(rate = paste(cases, population, sep = "/")) %>% 
+  select(-cases, -population)
+
+table4a <- table1 %>%
+  select(country, year, cases) %>% 
+  spread(key = year, value = cases)
+
+table4b <- table1 %>% 
+  select(country, year, population) %>% 
+  spread(key = year, value = population)
+
+# Nontidy data
+####### Exercise 1 - Tidy data part 1, 8:14
+# Tidydata should 1) have variables as columns 2) observations as rows 3) each value has its own cell 
+
+# table2: not tidy data because the third column, containing cases and populations, tell us that not all the relevant information given for an observation is in a row. Instead of type and count, we should have a cases and populations columns with their counts as the value. 
+
+# table4a: the annual columns, 1999 and 2000, are not variables. 
+
+#################################################
+
+# Tidy data strengths
+# good for statistics, R is efficient with vectors, so column-vectors are efficient. It is also specifically designed to integrate with the tidyverse. 
+
+# compute rate for table1 
+table1 %>% 
+  mutate(rate = cases / population * 10000)
+
+#compute rate from table2 
+
+table2 %>% 
+  pivot_wider(names_from = type, values_from = count) %>% # use pivot_wider in this case to "transpose" and restructure the data 
+  mutate(rate = cases / population * 10000)
+
+table2 %>% 
+  spread(key = type, value = count) #using spread 
+
+# compute rate from table4a and table4b 
+
+# table4a - use backticks since 1999 and 2000 are non-syntactic column names 
+
+tidy4a <- table4a %>% 
+  pivot_longer(c(`1999`, `2000`), names_to = "year", values_to = "cases") #using pivot_longer to increase number of rows and decrease number of columns 
+
+tidy4a <- table4a %>% 
+  gather(`1999`, `2000`, key = year, value = cases) # using gather - prefer this for now 
+
+#table4b 
+tidy4b <- table4b %>% 
+  pivot_longer(c(`1999`, `2000`), names_to = "year", values_to = "population")
+
+tidy4b <- table4b %>% 
+  gather(c(`1999`, `2000`), key = year, value = population)
+
+# now use left_join() to merge the data so we can then calculate rate 
+tidy4ab <- left_join(tidy4a, tidy4b) %>% 
+  mutate(rate = cases / population * 10000)
+
+
+# using separate to split columns on a specified separater 
+table3 %>% 
+  separate(rate, into = c("cases", "population"), sep = "/") # note these are encoded as character columns
+
+
+# using separate to split columns on a specified separater 
+table3 %>% 
+  separate(rate, into = c("cases", "population"), sep = "/", convert = TRUE) # use convert option to assign variable type automatically
+
+
+# seperate based ona  character number (in this case first character)
+table3 %>% 
+  separate(rate, into = c("first", "remainder"), sep = 1)
+
+
+###############################################################
+
+bb <- read_csv("billboard.csv")
+
+# remove columns not needed and rename artist col
+bb_tidy <- bb %>%
+  select(-time, -genre) %>% 
+  rename(artist = artist.inverted)
+
+#gather rankings in different weeks to a rank variable, do this by making them key-value pairs with chart position as the value
+
+bb_tidy %>% 
+  gather(x1st.week:x76th.week, key = week, value = rank, na.rm = TRUE) %>% #removes rows with na
+  mutate(week = parse_number(week)) %>% #replaces x1st.week with just 1
+  arrange(artist, track, week)
+  
+# using spread to make long data sets wide 
+
+# dealing with missing data
+# spread() will insert NAs automatically, making implicitely missing data explicit 
+
+# you can also use complete(), which creates rows for all combinations of input variables and fills in missing values where necessary
+?complete
+
+###############################################################
+
+tb <- read_csv("tb.csv")
+
+# look at first 10 calumns 
+names(tb)[1:10]
+
+
+# remove unneeded variables 
+tb <- select(tb, -new_sp, -contains("04"), -contains("514"), -new_sp_mu, -new_sp_fu )
+
+
+#create a demographic variable using gather, collect all variables except iso2 and year
+tblong <- tb %>% 
+  gather(new_sp_m014:new_sp_f65, key = demog, value = count, na.rm = TRUE)
+
+#seperate gender from age category 
+maxlen <- max(nchar(tblong$demog))
+tb <- tblong %>% 
+  mutate(demog = substr(demog, 8, maxlen)) %>% 
+  separate(demog, into = c("gender", "agecat"), sep = 1)
+
+
+
+
+
