@@ -1,0 +1,151 @@
+library(tidyverse)
+library(purrr)
+
+set.seed(42)
+n <- 100
+x1 <- rnorm(n); x2 <- rnorm(n)
+y1 <- x1 + rnorm(n, sd = .5); y2 <- x1+x2+rnorm(n, sd = .5)
+y3 <- x2 + rnorm(n, sd = .5); y4 <- rnorm(n, sd = .5)
+
+rr <- list(fit1 = lm(y1 ~ x1+x2),
+           fit2 = lm(y2 ~ x1+x2),
+           fit3 = lm(y3 ~ x1+x2), 
+           fit4 = lm(y4 ~ x1+x2))
+
+coef(rr$fit1)
+
+
+
+# exercise 1
+# the elements fo the list rr from the last slide are lm objects. The function coef() is generic. Assign class "lm_vec" to rr and write a coef() method for objects of this class. Hint: Your function could include a for() look like that below. The output of coef() taking rr as input should be the same as the output from the for loop 
+
+class(rr) <- "lm_vec"
+coef.lm_vec <- function(lm_vec) {v
+  for(i in seq_along(rr)) {
+    print(coef(rr[[i]]))
+  
+  }
+}
+
+library(nycflights13)
+x <- nycflights13::flights
+mode(flights$time_hour)
+
+
+v <- rr %>% map(coef) %>% map_dbl("x1") 
+
+library(tidyverse)
+
+
+
+########################### LECTURE 12 - ITERATION
+set.seed(42)
+n <- 100
+x1 <- rnorm(n); x2<-rnorm(n)
+y1 <- x1 + rnorm(n,sd=.5); y2 <- x1+x2+rnorm(n,sd=.5)
+y3 <- x2 + rnorm(n,sd=.5); y4 <- rnorm(n,sd=.5)
+rr <- list(fit1 = lm(y1 ~ x1+x2),
+           fit2 = lm(y2 ~ x1+x2),
+           fit3 = lm(y3 ~ x1+x2),
+           fit4 = lm(y4 ~ x1+x2))
+coef(rr$fit1)
+
+# exercise 1
+# the elements fo the list rr from the last slide are lm objects. The function coef() is generic. Assign class "lm_vec" to rr and write a coef() method for objects of this class. Hint: Your function could include a for() look like that below. The output of coef() taking rr as input should be the same as the output from the for loop 
+
+class(rr) <- "lm_vec"
+
+coef.lm_vec <- function(rr) {
+  for(i in seq_along(rr)) {
+    print(coef(rr[[i]]))
+  }
+}
+
+coef(rr)
+
+#extracting elements of the coefficient 
+
+coef.lm_vec <- function(rr) {
+  tempvec = vector(mode = "double", length(rr))
+  for(i in seq_along(rr)) {
+    tempvec[i] = coef(rr[[i]])["x1"]
+  }
+  return(tempvec)
+}
+
+coef(rr)
+
+# looping over elements in a set 
+fits <- paste0("fit", 1:4)
+for(ff in fits) { 
+  print(coef(rr[[ff]])["x1"])
+}
+
+# saving time by avoiding growing vectors incrementally 
+means <- seq.int(1000)
+set.seed(123)
+system.time({
+  output <- double()
+  for (i in seq_along(means)) {
+    n <- sample(100, 1)
+    output <- c(output, rnorm(n, means[[i]])) # super fucking slow, it concats exponentially 
+  }
+})
+
+system.time({
+  out <- vector("list", length(means))
+  for (i in seq_along(means)) {
+    n <- sample(100, 1)
+    out[[i]] <- rnorm(n, means[[i]])
+  }
+  out <- unlist(out)
+})
+
+
+########## exercise 2:  Write a for() loop to find the mode() of each column in nycflights13::flights
+
+library(nycflights13)
+
+flights <- nycflights13::flights
+
+tempvec <- vector("character", length(flights))
+for(i in seq_along(flights)) { 
+  tempvec[[i]] <- mode(flights[[i]])
+}
+tempvec
+
+########## exercise 3
+coef.lm_vec <- function(rr) {
+  lapply(rr, coef)
+}
+
+coef(rr)
+
+
+################### map 
+b1fun <- function(fit) { coef(fit)["x1"] } # body
+map_dbl(rr, b1fun)
+
+
+
+##################### exercise 4
+map_chr(flights, mode)
+
+map(flights, summary)
+
+
+#################### pipes and map 
+
+# define a function on the fly 
+rr %>%
+  map(summary) %>%
+  map_dbl(function(ss) { ss$r.squared })
+
+rr %>%
+  map(summary) %>%
+  map_dbl(~.$r.squared) # use ~ to replace "function(){}" syntax 
+
+# exercise 5 
+
+rr %>% 
+  map_dbl(~coef(.) ["x1"])
