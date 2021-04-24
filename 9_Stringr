@@ -1,0 +1,164 @@
+# Lecture #8 - strings 
+
+library(tidyverse)
+library(stringr)
+
+setwd("/home/lnc/Documents/coursework/stat260")
+
+#counting the number of characters with str_length 
+mystrings <- c("one fish", "two fish", "red fish", "blue fish")
+str_length(mystrings)
+
+# combining strings with str_c()
+str_c(mystrings[1], mystrings[2], sep = ", ")
+str_c(mystrings[1], NA, sep = ", ") # combining with NA yields NA 
+str_c(mystrings[1], str_replace_na(NA), sep = ", ") # to combine with an NA, use str_replace_na()
+str_c(mystrings, collapse = ", ")
+
+#subsetting strings with str_sub()
+str_sub(mystrings, 1, 3) # from left - note this is inclusive 
+str_sub(mystrings, -4, -1) # from right
+str_sub(mystrings, 1, 100000) # terminates at last character, just returns "" 
+
+# exercise 1
+# for demog as definied in the following code chunk, 
+demog <- c("new_sp_f014", 
+           "new_sp_m1524", 
+           "new_sp_mu")
+
+# 1. use one line of code extract the substring that represents the gender and age category, (u stands for unknown) from each of the three compononents. 
+str_sub(demog, 8, 12)
+
+# 2. extract the last 4 characters of each of the three components
+str_sub(demog, -4)
+
+# 3. combine the three components into one string, separaged by a plus sign 
+str_c(str_sub(demog, 8), collapse = "+") 
+
+# fixed strings vs regular expressions 
+# detecting substrings with str_detect()
+pattern <- "red"
+str_detect(mystrings, pattern)
+
+mystrings[str_detect(mystrings, pattern)] # return boolean of the vector
+
+pattern <- "fish"
+str_detect(mystrings, pattern)
+
+# finding substring starting position 
+str_locate() # returns the start and stop positions of the first occurance of a string 
+str_locate_all() # returns the start and stop of all occurances 
+
+Seuss <- str_c(mystrings, collapse = ", ")
+str_locate(Seuss, pattern) # terminates after first match
+
+str_locate_all(Seuss, pattern) # iterates through all elements 
+
+str_locate_all(mystrings, pattern)
+
+
+# replacings / substituting functions
+str_replace(Seuss, "fish", "bird") #first match only 
+str_replace_all(Seuss, "fish", "bird") # all matches 
+str_replace_all(Seuss, c("one" = "1", "two"="2")) #vector of replacements 
+
+
+# splitting strings 
+mystrings <- c("20.50", "33.33")
+str_split(mystrings, pattern = ".") # set pattern to . for split - note does not work 
+
+# fixed method
+str_split(mystrings, pattern = fixed("."))
+
+# using regex 
+pattern <- "p,n"
+mystrings <- c("pineapple", "apple", "pen")
+str_detect(mystrings, pattern)
+
+
+# matching special characters 
+pattern2 <- "3.40"
+mystrings2 <- c("33.40", '3340')
+str_detect(mystrings2, pattern2)
+
+pattern2 <- "3\\.40"
+str_detect(mystrings2, pattern2) # use escape for special characters, even the backslash itself 
+
+# splitting, locating, and extracting with patterns 
+pattern = "p.n" # anything .
+str_split(mystrings, pattern) #split on match 
+
+# locating
+str_locate(mystrings, pattern) # locatte matches 
+
+# extracting 
+str_extract(mystrings, pattern) #return matchines 
+
+# replacing patterns
+str_replace(mystrings, pattern, "PPAP")
+str_replace(mystrings, pattern, "p.n")
+
+# exercise
+# replace the decimals with commas in the following strings 
+exstring <- c("$55.30", "$22,43")
+str_replace_all(exstring, "\\.", ",")
+
+
+#adding * and + quantifiers to .
+# f.*n # f followed by 0 or more characters 
+# f . +n # f followed by 1 or more characters
+
+mystrings <- c("fun", "for fun", "fn")
+pattern1 <- "f.*n"; pattern2 <- "f.+n"
+str_extract(mystrings, pattern1)
+str_extract(mystrings, pattern2) # returns an NA, greedy because it matches longest possible string 
+
+# using numerical quantifyers to require a specific number of matches 
+str_extract(mystrings, "f.{6}n")
+str_extract(mystrings, "f.{1,13}n")
+
+#using an anchor to restrict a match to the ^start and the end $
+mystrings <- c("pineapple", "apple", "pen")
+str_extract(mystrings, "^p")
+str_extract(mystrings, "e$")
+
+# exercise
+# create a regular expression that matches words that are exactly three letters long 
+myregexp <- "^.{3}$"
+sum(str_detect(stringr::words,myregexp))
+sum(str_detect(stringr::words, myregexp))
+
+
+# other characters to match 
+pattern4 <- "f[aeiou]*n"
+mystrings <- c("fan", "fin", "fun", "ran, fin, fun", "friend", "faint")
+str_extract(mystrings, pattern4)
+
+str_extract_all(mystrings, pattern4)
+
+# shorthands for common character classes 
+# \d aka \\d - matches any digit 
+# \s aka \\s matches any whitespace 
+# dashes can specify a range. e.g. [A-Z], [1-9]
+# use the caret [] to negate. e.g. [^abc] match anything except a, b, c
+
+# exercise 
+# create a regular expression that matches words that end in ed but not eed 
+x <- c("geeed", "red")
+str_extract(x, "[^e]ed$")
+
+myregexp2 <- "[^e]ed$"
+sum(str_detect(stringr::words, myregexp2))
+
+  # alternatives 
+# | can be used as or, e.g. red|blue
+str_replace_all(Seuss, "red|blue", "color")
+str_replace_all("is it grey or gray?", "gr(e|a)y", "white")
+
+#converting cases 
+str_to_upper(Seuss)
+str_to_lower(Seuss)
+
+
+
+
