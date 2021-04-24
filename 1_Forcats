@@ -1,0 +1,164 @@
+library(tidyverse)
+library(forcats)
+# factors 
+
+# you can coerce any vector to a factor 
+x1 <- c("dog", "cat", "mouse")
+x2 <- factor(x1)
+x2 <- factor(x1, levels = c("mouse", "cat", "dog")) # if you want to set the order of the levels 
+x2 <- factor(x1, levels = unique(x1))
+x2 # factor with 3 levels - levels are unique values 
+# this is internally represented (encoded by R) as a vector of integers with an attribute that maps these integers to the levels
+str(x2) # notice what this prings out 
+
+x1 <- c(3, 4, 1) # using a vector of integers
+x2 <- factor(x1) 
+x2 # no longer integers but factors, 3 levels 
+
+x1 <- c(TRUE, FALSE, TRUE) #using a vector of bools
+x2 <- factor(x1)
+x2 #only two levels 
+
+
+# what happens if you specify more or fewer levels than values? - it's totally fine
+ll <- c("cat", "dog", "horse", "mouse")
+factor(x1, levels = ll) # more levels than values 
+
+ll <- ll[1:2]
+factor(x1, levels = ll) # in this case values not in the levels were given NA value 
+
+# accessing levels 
+levels(x2) # view levels
+levels(x2) <- c("Mouse", "Cat", "Dog") #set levels
+
+# example data: canadian communities health servey 
+hui <- read_csv("HUI.csv.gz", col_types = 
+                  cols(
+                    GEO_PRV = col_factor(), # province
+                    GEOGCMA2 = col_factor(), # urban/rural
+                    DHHGAGE = col_factor(), # age 
+                    DHH_SEX = col_factor(), # sex 
+                    HUIDCOG = col_factor(), # cognitive scpre 
+                    HUIGDEX = col_factor(), # dexterity score
+                    HUIDEMO = col_factor(), # emotional
+                    HUIGHER = col_factor(), # hearing
+                    HUIDHSI = col_double(), # index variable 
+                    HUIGMOB = col_factor(), # mobility 
+                    HUIGSPE = col_factor(), # speach trouble
+                    HUIGVIS = col_factor(), # vision
+                    WTS_M = col_double() # sample weights 
+                  )
+)
+
+hui %>% group_by(GEO_PRV) %>% # group by province 
+  summarise(mean = weighted.mean(HUIDHSI, WTS_M, na.rm = TRUE)) %>% 
+  ggplot(aes(x = mean, y = GEO_PRV)) + 
+  geom_point()
+
+# reordering factor levels for  a nicer plot using fct_reorder()
+hui %>% group_by(GEO_PRV) %>% # group by province 
+  summarise(mean = weighted.mean(HUIDHSI, WTS_M, na.rm = TRUE)) %>% 
+  ggplot(aes(x = mean, y = fct_reorder(GEO_PRV, mean))) +  #reorder factors according to mean 
+  geom_point()
+
+# manually reordering factors using fct_relevel()
+WtoE <- c("BC", "AB", "SASK", "MB", "ONT", "QUE", "NB", "PEI", "NS", "NFLD & LAB.")
+
+hui %>% group_by(GEO_PRV) %>% # group by province 
+  summarise(mean = weighted.mean(HUIDHSI, WTS_M, na.rm = TRUE)) %>% 
+  ggplot(aes(x = fct_relevel(GEO_PRV, WtoE), y = mean)) + # remap to x axis for easier viewing of provinces, also ordered by the geographical location of the provinces 
+  geom_point()
+
+# ordering levels by frequency using fct_infreq()
+ggplot(hui, aes(x = fct_infreq(GEO_PRV))) + 
+  geom_bar()
+
+# modifying factor levels using fct_recode()
+hui <- hui %>%
+  mutate(GEO_PRV = fct_recode(GEO_PRV, 
+                              "British Columbia" = "BC", 
+                              "Alberta" = "AB", 
+                              "Saskatchewan" = "SASK", 
+                              "Manitoba" = "MB", 
+                              "Ontario" = "ONT", 
+                              "Québec" = "QUE", 
+                              "New Brunswick" = "NB", 
+                              "Prince Edward Island" = "PEI", 
+                              "Nova Scotia" = "NS", 
+                              "Newfoundland & Labrador" = "NFLD & LAB."))
+
+# notice now how full names are shown 
+hui %>% group_by(GEO_PRV) %>% # group by province 
+  summarise(mean = weighted.mean(HUIDHSI, WTS_M, na.rm = TRUE)) %>% 
+  ggplot(aes(x = mean, y = fct_reorder(GEO_PRV, mean))) +  #reorder factors according to mean 
+  geom_point()
+
+# combining lecels with fct_recode() - not that this is only to demonstrate this and is not good analysis 
+hui %>%
+  mutate(GEO_PRV = fct_recode(GEO_PRV, 
+                              "Maritimes" = "New Brunswick", # pooled maritimes 
+                              "Maritimes" = "Prince Edward Island", 
+                              "Maritimes" = "Nova Scotia", 
+                              "Maritimes" = "Newfoundland & Labrador")) %>%
+  group_by(GEO_PRV) %>% 
+  summarise(mean = weighted.mean(HUIDHSI, WTS_M, na.rm = TRUE)) %>% 
+  ggplot(aes(x = mean, y = fct_reorder(GEO_PRV, mean))) + 
+  geom_point()
+
+
+# Grouping, or lumping infrequent levels  using fct_lump() 
+
+# fct_lump() will group rare levels into one new level called "other"
+hui %>% mutate(GEO_PRV = fct_lump(GEO_PRV, w = WTS_M)) %>% 
+  group_by(GEO_PRV) %>% 
+  summarise(mean = weighted.mean(HUIDHSI, WTS_M, na.rm = TRUE)) %>% 
+  ggplot(aes(x = mean, y = fct_reorder(GEO_PRV, mean))) + 
+  geom_point()
+
+# exercise 1
+# le levels of HUIDCOG are COG. ATT. LEVE 1 through COG. Att. LEVE 6. Recode these in terms of memory and thinking abilities as follows:
+
+hui_cog <- hui %>%
+  mutate(HUIDCOG = fct_recode(HUIDCOG,
+                              "good memory, clear thinking" = "COG. ATT. LEVE 1", 
+                              "good memory, some difficulty thinking" = "COG. ATT. LEVE 2", 
+                              "somewhat forgetful, clear thinking" = "COG. ATT. LEVE 3", 
+                              "somewhat forgetful, some difficulty thinking" = "COG. ATT. LEVE 4", 
+                              "very forgetful, great difficulty thinking" = "COG. ATT. LEVE 5",
+                              "unable to remember, unable to think" = "COG. ATT. LEVE 6"
+  ))
+
+# exercise 2 - for each level of HUIDCOG calculated tdd.n - sum(WTS_M). plot the levels of HUIDCOG versus the log-based10 og wtd.n with geom_point()
+hui_cog %>% 
+  na.omit() %>%
+  group_by(HUIDCOG) %>% 
+  summarise(wtd.n = sum(WTS_M, na.rm = TRUE)) %>% 
+  ggplot(aes(x = log10(wtd.n), y = HUIDCOG)) + 
+  geom_point()
+
+# exercise 3 = repeat exercises 2, but with the levels HUIDCOG ordered by wtd.n 
+hui_cog %>% 
+  na.omit() %>%
+  group_by(HUIDCOG) %>% 
+  summarise(wtd.n = sum(WTS_M, na.rm = TRUE)) %>% 
+  ggplot(aes(x = log10(wtd.n), y = fct_reorder(HUIDCOG, wtd.n))) + 
+  geom_point()
+
+# exercise 4 - repeat exercise 3 with HUIDCOG recoded according to memory as "good memory", "somewhat forgetful", "very forgetful" or "unable to remember" 
+
+hui_cog %>% 
+  na.omit() %>%
+  mutate(HUIDCOG = fct_recode(HUIDCOG, 
+                              "good memory" = "good memory, clear thinking", 
+                              "good memory" = "good memory, some difficulty thinking",
+                              "somewhat forgetful" = "somewhat forgetful, clear thinking", 
+                              "somewhat forgetful" = "somewhat forgetful, some difficulty thinking", 
+                              "very forgetful" = "very forgetful, great difficulty thinking", 
+                              "unable to remember"= "unable to remember, unable to think" )) %>% 
+  group_by(HUIDCOG) %>% 
+  summarise(wtd.n = sum(WTS_M, na.rm = TRUE)) %>% 
+  ggplot(aes(x = log10(wtd.n), y = fct_reorder(HUIDCOG, wtd.n))) + 
+  geom_point()
+  
+
+
