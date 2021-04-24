@@ -1,0 +1,63 @@
+
+#######################################################################
+# date and times 
+library(lubridate)
+library(nycflights13)
+
+# use lubridate to coerce strings to date objects 
+ymd("19-09-01") # year-month-date, 
+mdy("09012019") # month day year
+ymd_hm("19-09-01 2:00") # year month day, hour minute
+
+# set timezone 
+Sys.timezone() # get timezone 
+ymd_hm("19-09-01 2:00", tz = "America/Vancouver") # year month day, hour minute
+
+
+# example 
+yvr <- read_csv("weatherYVROct2019.csv") %>% 
+  select("Date/Time", Year, Month, Day, Time, "Temp (C)")
+yvr #date is string, rest is double which is wrong) 
+
+# coerce date/time
+yvr <- yvr %>% 
+  mutate(`Date/Time` = 
+           ymd_hm(`Date/Time`, tz = "America/Vancouver"))
+yvr
+
+# plotting time series 
+
+ggplot(yvr, aes(x = `Date/Time`, y = `Temp (C)`)) + 
+  geom_line()
+
+#make date-time from components using make_datetime()
+yvrdt <- yvr %>% 
+  mutate(datetime = make_datetime(Year, Month, Day, hour(Time), minute(Time), 
+                                  tz = "America/Vancouver")) %>% 
+  select(`Date/Time`, datetime)
+yvrdt
+
+# you can then do some arithmetic on the date-time objects 
+(ymd_hms("20191029 01:01:00") - ymd_hms("20191028 01:01:00")) # prints "Time difference of 1 days 
+(ymd_hms("20191029 01:01:00") - ymd_hms("20191028 01:00:00")) 
+(ymd_hms("20191029 01:01:00") - ymd_hms("20191029 01:00:00")) 
+
+as.duration((ymd_hms("20191028 01:01:00") - ymd_hms("20191028 01:00:00"))) # prints time difference as duration
+
+
+# calculate standard deviation of time 
+yvrdt %>% 
+  mutate(diff = datetime - mean(datetime), 
+         diffsec = as.duration(datetime - mean(datetime))) %>% 
+  summarise(sd = sd(diff), sd2 = sd(diffsec))
+
+# exercise 5 
+# verify that teh datetime object on slide 30 is equal to the Date/Time object created with ymd_hm()
+yvrdt$datetime == yvrdt$`Date/Time`
+
+# use the sd() function to calculate the SD of the datetime object. What are the units?
+yvrdt %>% # it comes from lubridate so must coerce into a way that base r understands
+  mutate(diff = datetime - mean(datetime), 
+         diffsec = as.duration(datetime - mean(datetime))) %>% 
+  summarise(sd = sd(diff), sd2 = sd(diffsec))
+# sd is in  minutes, and sd2 in seconds 
